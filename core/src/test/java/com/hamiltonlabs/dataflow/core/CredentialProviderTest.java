@@ -20,7 +20,15 @@ public class CredentialProviderTest{
 	assertEquals(s,"plugh");
 
        
-        /* the method tested here is  brazenly stubbed for now. Just so that DataProvider can operate  */
+	/*   This tests the getCredentials given the decryption key 
+         * the "dataflow.properties" is a jdbs properties file that contains an "encrypted" field.
+         * if we decrypt it using the key passed here ("plugh") it will yield the password to the dataflow database 
+         *
+         * the method tested here is  brazenly stubbed, just so that DataProvider can operate.
+         *
+	 * any call to the CredentialProvider must supply the decryption key. We use 'plugh' for test because
+         * it is so silly that it is obvious you cannot use it IRL   
+         */
 	try{
         Properties p=CredentialProvider.getCredentials("plugh","dataflow.properties");
 	assertEquals(p.get("password"),"plugh");

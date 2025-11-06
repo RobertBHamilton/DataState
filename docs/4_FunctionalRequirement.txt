@@ -9,22 +9,14 @@ Requirement 6. Only encrypted credentials are stored. Decription string is not a
 
 
 The functional requirements are as follows:
-FR1:   
-  Supply answer to the critical question: give me the "next" location of input data sets which 
-    have not been processed yet and which are not being processed now.  
-  "Next" implies an ordering on a collection of tuples, if there are more than one input dataset. It is determned by business requirements.
-   In this version we will simplify, using a sequence number or date string and requiring input/output to have the same value.
+FR1.   Supply answer to the critical question: give me the "next" location of input data sets which have not been processed yet and which are not being processed now.  "Next" implies an ordering on a collection of tuples, if there are more than one input dataset. It is determned by business requirements.  In this version we will simplify, using a sequence number or date string and requiring input/output to have the same value (see LogicalRequirement NOT.3) 
    
-FR2:
-   Supply information to access input  datasets (read only) and to write to appropriate output data set
-   For example, make it possible to write a genericy COPY command with all arguments supplied by DataFlow framework
+FR2: Supply information to access input  datasets (read only) and to write to appropriate output data set. For example, make it possible to write a genericy COPY command with all arguments supplied by DataFlow framework
 
-FR3: 
-   For devops support if job failed.  Capture and provide answers to the five questions. Was the data ready? Was it the right data? Was it in the correct physical location? Was it valid? Was it safe to access?
+FR3: For devops support if job failed.  Capture and provide answers to the five questions. Was the data ready? Was it the right data? Was it in the correct physical location? Was it valid? Was it safe to access?
 
 
-FR4: 
-   Fully restartable by setting the status to something other than "error","failed", "complete".  I.e. no manual cleanups
+FR4: Fully restartable by setting the status to something other than "error","failed", "complete".  I.e. no manual cleanups
 
 Discussion:
 
