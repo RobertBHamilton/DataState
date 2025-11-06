@@ -15,13 +15,11 @@
 
   <modules>
     <module>core</module>
- <!--   
-    <module>database</module>
     <module>utility</module>
-    <module>service-lib</module>
-    <module>creation-platform</module>
-    <module>sql-resources</module>
-  -->
+    <module>database</module>
+    <module>service</module>
+    <module>platform</module>
+    <module>resources</module>
   </modules>
 
 
