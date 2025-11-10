@@ -46,3 +46,7 @@ NOTE: for the script we have added a new dependency. It uses jq.
     RunJob wraps the script and provides the coordination logic without changing even one line in the ETL script. 
     Still have some cleanup to do in the Dataflow class and the Junit tests 
 
+    TODO: remove the horrid mess of the getJobData method, correct a bad desicion that added side effects. Have to split it up. 
+      have all junit tests clean up the database and initialize with data if needed before running, 
+      build some reference job flows.  
+      
