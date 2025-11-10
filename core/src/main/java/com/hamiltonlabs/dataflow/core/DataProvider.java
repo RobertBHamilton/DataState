@@ -55,6 +55,26 @@ public class DataProvider implements AutoCloseable{
     }	
 
 
+    /** submit arbitrary DML SQL with bind variables 
+     * @param SQL sql to run
+     * @param vars zero or more strings to bind to the statement
+     * @return Json in string
+     */
+    public int runUpdate(String ... vars) throws SQLException{
+	try{
+            String sql=vars[0];
+	    PreparedStatement st=connection.prepareStatement(sql);	
+            for (int i=1;i<vars.length;i++){
+		st.setString(i,vars[i]);
+	    }
+	    int rs=st.executeUpdate();
+	    return rs;
+        } catch(SQLException e){
+	    e.printStackTrace();
+            throw new SQLException(e);
+        }
+    }
+
     /** submit arbitrary SQL with bind variables 
      * @param SQL sql to run
      * @param vars zero or more strings to bind to the statement
