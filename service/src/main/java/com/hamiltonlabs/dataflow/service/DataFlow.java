@@ -60,6 +60,7 @@ public class DataFlow {
 	return returnString;
     }
 
+/* Add or update the data status for this job's datasets */
     public static void setJobStart(String passkey,String jobid,String dataid)throws Exception{
         DataProvider dataprovider=new DataProvider().open(passkey,"dataflow.properties");
 	ResultSet rs=dataprovider.runSQL(datasetSQL,jobid);

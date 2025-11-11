@@ -50,6 +50,7 @@ if [ -z "$dataid" ];then
 fi
 
 echo "`date`: Launching $cmd with dataid $dataid"
+# lock our files
 java com.hamiltonlabs.dataflow.utility.SetJobStart $passkey $jobid $dataid
 
 eval "$cmd"
