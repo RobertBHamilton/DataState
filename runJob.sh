@@ -50,6 +50,8 @@ if [ -z "$dataid" ];then
 fi
 
 echo "`date`: Launching $cmd with dataid $dataid"
+java com.hamiltonlabs.dataflow.utility.SetJobStart $passkey $jobid $dataid
+
 eval "$cmd"
  if [ $? -eq 0 ];then
      echo "`date`: Job $cmd is complete. Updating status"

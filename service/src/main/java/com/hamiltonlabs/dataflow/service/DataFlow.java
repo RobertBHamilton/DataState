@@ -19,6 +19,12 @@ import java.sql.SQLException;
 
 public class DataFlow {
   
+	 static String dataidSQL="select x.dataid,x.jobid from  (select j.datasetid,j.jobid,d.dataid  from job j left join datastatus d on j.datasetid=d.datasetid and d.locktype='OUT' and d.status='READY' where j.itemtype='IN' and j.jobid=?)x where not exists (select d.dataid from job j join datastatus d on j.jobid=x.jobid  and j.itemtype='IN' and d.locktype='IN' and j.datasetid=d.datasetid and d.dataid=x.dataid) and not exists (select d.dataid from job j join datastatus d on j.jobid=x.jobid and j.itemtype='OUT' and d.datasetid=j.datasetid and d.dataid=x.dataid where d.status != 'RESUBMIT')  order by x.dataid limit 1;" ;
+        static String datasetSQL="select d.*,itemtype from dataset d join job on job.datasetid=d.datasetid where job.jobid=?";
+	static String updateSQL="update datastatus set status=?,locktype=? where dataid=? and datasetid=? and jobid=?";
+        static String insertSQL="insert into datastatus values (?,?,?,?,?,now())";
+	static String updateOutStatusSQL="update datastatus set status=? where jobid=? and dataid=? and locktype='OUT'	";
+	static String updateFileLocalStatusSQL="delete from datastatus where jobid=? and dataid=? and locktype='IN'	";
     /**  Set the status for a given dataset,job, and chunk 
      *
      *  @param datasetid    string representing registered dataset
@@ -31,8 +37,6 @@ public class DataFlow {
     public static void setStatus(String datasetid,String jobid,String dataid,DataProvider dataprovider,String locktype,String status) throws Exception {
 	/* insert should have the following fields:  datasetid |  jobid   | dataid | locktype | status            */
 	
-	String updateSQL="update datastatus set status=?,locktype=? where dataid=? and datasetid=? and jobid=?";
-        String insertSQL="insert into datastatus values (?,?,?,?,?,now())";
 	int updatecount=dataprovider.runUpdate(updateSQL,status,locktype,dataid,datasetid,jobid);
 	if (updatecount==0){
 	    updatecount=dataprovider.runUpdate(insertSQL,datasetid,jobid,dataid,locktype,status);
@@ -46,8 +50,6 @@ public class DataFlow {
 	String returnString="";
          DataProvider dataprovider=new DataProvider().open(passkey,"dataflow.properties");
 	/* set the OUT status */
-	String updateOutStatusSQL="update datastatus set status=? where jobid=? and dataid=? and locktype='OUT'	";
-	String updateFileLocalStatusSQL="delete from datastatus where jobid=? and dataid=? and locktype='IN'	";
 
 	int updatecount=dataprovider.runUpdate(updateOutStatusSQL,status,jobid,dataid);
         int deletecount=dataprovider.runUpdate(updateFileLocalStatusSQL,jobid,dataid);
@@ -58,6 +60,19 @@ public class DataFlow {
 	return returnString;
     }
 
+    public static void setJobStart(String passkey,String jobid,String dataid)throws Exception{
+        DataProvider dataprovider=new DataProvider().open(passkey,"dataflow.properties");
+	ResultSet rs=dataprovider.runSQL(datasetSQL,jobid);
+        ResultSetMetaData rsmd = rs.getMetaData();
+        while(rs.next()) {
+            int numColumns = rsmd.getColumnCount();
+	    String datasetid=rs.getString("datasetid");
+	    String locktype=rs.getString("itemtype");
+	    setStatus(datasetid,jobid,dataid,dataprovider,locktype,"RUNNING");
+            }
+    }
+
+ 
     /** Get next available data chunk for the job
      *
      *  Provides dataset information for each dataset registered to this job, dataid which is to be interpreted as a slice of data to process, 
@@ -77,8 +92,6 @@ public class DataFlow {
           * TODO: Migrate sql to a resource 
           */
 
-	 String dataidSQL="select x.dataid,x.jobid from  (select j.datasetid,j.jobid,d.dataid  from job j left join datastatus d on j.datasetid=d.datasetid and d.locktype='OUT' and d.status='READY' where j.itemtype='IN' and j.jobid=?)x where not exists (select d.dataid from job j join datastatus d on j.jobid=x.jobid  and j.itemtype='IN' and d.locktype='IN' and j.datasetid=d.datasetid and d.dataid=x.dataid) and not exists (select d.dataid from job j join datastatus d on j.jobid=x.jobid and j.itemtype='OUT' and d.datasetid=j.datasetid and d.dataid=x.dataid where d.status != 'RESUBMIT')  order by x.dataid limit 1;" ;
-        String datasetSQL="select d.*,itemtype from dataset d join job on job.datasetid=d.datasetid where job.jobid=?";
 
 	ResultSet rs=dataprovider.runSQL(dataidSQL,jobid);
 	String dataid;
@@ -91,8 +104,7 @@ public class DataFlow {
 	} else {
 	   return result.toString();  /* empty set */
 	}
-	/* If we get  here we have found a dataset. Time to lock the tables as we go */
-    //setStatus(String datasetid,String jobid,String dataid,DataProvider dataprovider,String locktype,String status) 
+	/* If we get  here we have found a dataset. */
         
 	rs=dataprovider.runSQL(datasetSQL,jobid);
        ResultSetMetaData rsmd = rs.getMetaData();
@@ -101,7 +113,6 @@ public class DataFlow {
             JSONObject obj = new JSONObject();
 	    String datasetid=rs.getString("datasetid");
 	    String locktype=rs.getString("itemtype");
-	    setStatus(datasetid,jobid,dataid,dataprovider,locktype,"RUNNING");
             String prefix=datasetid;
 	    /* flatten the variable namespace for the scripts to use */
             if (prefix != null){ prefix=prefix+"_"; }
