@@ -21,6 +21,7 @@ public class DataFlow {
   
         /* the lock is the OUT READY datastatus row wwhich is an IN for the job. Any other invocation of the same job will want it, so skip locked skips it */
         /* must be called inside a transaction */
+	/* AUTOMATIC dataset "today" is out type that is always ready and has dataid of today */
 	 static String dataidLockedSQL= """
                /* dataid of at least one row is input for the job and is ready */
                  select                                            
@@ -60,6 +61,37 @@ public class DataFlow {
 		   and d3.dataid is null )    /* any non match is a missing input */ 
                order by d.dataid limit 1 for update of d skip locked
             """ ;
+
+/* Automatic dataset 'today' always supplies current date as dataid and is always READY */
+/* The rest of the logic confirming ready must be identical    */
+	 static String dataidTodaySQL= """
+                 select to_char(current_date,'YYYY-MM-DD') as dataid,j.jobid from job j where j.itemtype='IN' and j.datasetid='today' and j.jobid=? /* and non of the input rows are already have IN status for this job */ and not exists ( select d1.dataid from job j1 join datastatus d1 on j1.jobid=j.jobid and j1.itemtype='IN' and d1.locktype='IN' and j1.datasetid=d1.datasetid and d1.dataid=to_char(current_date,'YYYY-MM-DD')) 
+                /* and this job is not running  or complete already  */ 
+                and not exists ( 
+               select 
+                     d2.dataid from job j2 join datastatus d2 
+                on 
+                    j2.jobid=d2.jobid and j2.itemtype='OUT' 
+                    and d2.datasetid=j2.datasetid and d2.dataid=to_char(current_date,'YYYY-MM-DD') 
+                    where j2.jobid=j.jobid 
+                    and d2.status != 'RESUBMIT') 
+		 /* all inputs to job exist, are out and have a ready status */ 
+                  and not exists ( select j.datasetid from
+                      job j3
+                  left outer join
+                      datastatus d3
+                   on
+                      j3.datasetid=d3.datasetid
+                      and d3.locktype='OUT'
+                      and d3.dataid=to_char(current_date,'YYYY-MM-DD')
+                      and d3.status='READY'
+                   where
+                       j3.jobid=?
+                   and j3.itemtype='IN'
+                   and j3.datasetid != 'today'
+                   and d3.dataid is null )    /* any non match is a missing input */
+            """;
+ 
 
         /* readonly version of the same but cannot skip locked*/
 	 static String dataidSQL="select x.dataid,x.jobid from  (select j.datasetid,j.jobid,d.dataid  from job j left join datastatus d on j.datasetid=d.datasetid and d.locktype='OUT' and d.status='READY' where j.itemtype='IN' and j.jobid=?)x where not exists (select d.dataid from job j join datastatus d on j.jobid=x.jobid  and j.itemtype='IN' and d.locktype='IN' and j.datasetid=d.datasetid and d.dataid=x.dataid) and not exists (select d.dataid from job j join datastatus d on j.jobid=x.jobid and j.itemtype='OUT' and d.datasetid=j.datasetid and d.dataid=x.dataid where d.status != 'RESUBMIT')  order by x.dataid limit 1";
@@ -111,26 +143,35 @@ public class DataFlow {
     public static String launchJob(String passkey,String jobid)throws Exception{
 
         DataProvider dataprovider=new DataProvider().open(passkey,"dataflow.properties");
+
 	int bt=dataprovider.runUpdate("begin transaction");
 	int k=dataprovider.runUpdate("lock datastatus in access exclusive mode ");
-	ResultSet rs=dataprovider.runSQL(dataidLockedSQL,jobid);
+
 	String dataid;
 	JSONArray result=new JSONArray();
-	if (rs.next()){
-	   dataid=rs.getString("dataid");
-           JSONObject obj = new JSONObject();
-           obj.put("dataid",dataid);
-	   result.put(obj);
-	} else {
-	   return result.toString();  /* empty set */
-	}
+        JSONObject obj = new JSONObject();
+
+	ResultSet rs=dataprovider.runSQL(dataidTodaySQL,jobid,jobid);
+	/* if no automatic result then do the check for normal data set input */
+	if (rs.next()){  
+	    dataid=rs.getString("dataid");
+	}else {
+            rs=dataprovider.runSQL(dataidLockedSQL,jobid);
+	    if (rs.next()){
+	    dataid=rs.getString("dataid");
+	   } else {
+	      return result.toString();  /* empty set */
+	   }
+        }
+        obj.put("dataid",dataid);
+	result.put(obj);
 	/* If we get  here we have found a dataset, have a dataid value for it, and a lock on the row */
         /* now get the data to return and set the locks */ 
 	rs=dataprovider.runSQL(datasetSQL,jobid);
         ResultSetMetaData rsmd = rs.getMetaData();
         while(rs.next()) {
             int numColumns = rsmd.getColumnCount();
-            JSONObject obj = new JSONObject();
+            obj = new JSONObject();
 	    String datasetid=rs.getString("datasetid");
 	    String locktype=rs.getString("itemtype");
 	    setStatus(datasetid,jobid,dataid,dataprovider,locktype,"RUNNING");
