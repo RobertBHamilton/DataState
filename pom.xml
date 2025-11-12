@@ -12,7 +12,6 @@
 
   <!-- FIXME change it to the project's website -->
   <url>http://www.example.com</url>
-
   <modules>
     <module>core</module>
     <module>utility</module>
@@ -26,8 +25,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
+    <maven.compiler.release>21</maven.compiler.release>
   </properties>
 
   <dependencies>

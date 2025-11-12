@@ -1,17 +1,27 @@
-#!/bin/bash
+#!/bin/bash 
 #
 # Look for an environment registered in DataFlow, if a suitable data chunk is available then
 # Set the environment and execute the command in a new process
 # If not then drop a message and exit 
 
-export passkey=$1
-export jobid=$2
-export cmd=$3
+# support alternate way to pass the key 
+if [ -z "$PASSKEY" ];then
+  export passkey=$1
+  shift
+else 
+  export passkey=$PASSKEY
+  echo using key from environment
+fi
+
+export jobid=$1
+export cmd=$2
+export args=$@
 # 
 export CLASSPATH=bin/postgresql-42.7.3.jar:bin/json-20250517.jar:app/target/app-1.0.0.jar
 
 getEnvJSON(){
-  java com.hamiltonlabs.dataflow.utility.GetJobData $jobid $passkey 
+  #java com.hamiltonlabs.dataflow.utility.GetJobData $jobid $passkey 
+  java com.hamiltonlabs.dataflow.utility.LaunchJob $passkey $jobid 
 }
 
 decrypt() {
@@ -51,9 +61,9 @@ fi
 
 echo "`date`: Launching $cmd with dataid $dataid"
 # lock our files
-java com.hamiltonlabs.dataflow.utility.SetJobStart $passkey $jobid $dataid
+#java com.hamiltonlabs.dataflow.utility.SetJobStart $passkey $jobid $dataid
 
-eval "$cmd"
+eval "$cmd $args"
  if [ $? -eq 0 ];then
      echo "`date`: Job $cmd is complete. Updating status"
      java -cp $CLASSPATH:app.jar com.hamiltonlabs.dataflow.utility.SetJobEndStatus $passkey $jobid $dataid READY

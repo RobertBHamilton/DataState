@@ -5,21 +5,12 @@ usage: $0 cmd args
 currently supported commands with required args are:
 
 	SetJobEndStatus  passkey jobid dataid status 
-	    Set the status of the jobs output data at the end of the job
-	    passkey is key used to encrypt the dataflow password in dataflow.properties
-	    jobid is the registered job ID in the dataflow job table
-	    dataid is the run sequence. Could be any string but should be sortable 
-	    status is one of RUNNING,FAILED,READY,RESUBMIT
-
 	Cryptor  [-d|-e] passkey text   
-  	     -d  decrypts the text.  
-             -e encrypts the text
-
         GetJobData jobid passkey 
-	     NOTE THIS HAS SIDE EFFECTS. DO NOT USE in this version
-
 	RunUpdate passkey sql 
         RunSql passkey sql
+        RunSql passkey sql
+        SetDataStatus passkey dataid datasetid jobid lockType status
 
 if the PASSKEY environment variable is set then you can omit passkey from the arguments above	
 DONE
