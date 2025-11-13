@@ -26,7 +26,7 @@ cmd=$1
 shift
 echo passkey $PASSKEY
 echo command $cmd
-echo args $@
+echo args "$@"
 # Special case the runsql because we can and should make the result readable
 case  "$cmd" in 
     "RunSql"|"RunUpdate" ) 
