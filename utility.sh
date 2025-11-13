@@ -4,15 +4,18 @@ cat<<DONE
 usage: $0 cmd args
 currently supported commands with required args are:
 
-	SetJobEndStatus  passkey jobid dataid status 
-	Cryptor  [-d|-e] passkey text   
-        GetJobData jobid passkey 
-	RunUpdate passkey sql 
-        RunSql passkey sql
-        RunSql passkey sql
-        SetDataStatus passkey dataid datasetid jobid lockType status
+	SetJobEndStatus jobid dataid status 
+	Cryptor  [-d|-e] text   
+        GetJobData jobid 
+        sql sql
+        update sql
+        SetDataStatus dataid datasetid jobid lockType status
+	jobs  
+	datasets 
+	runs 
 
-if the PASSKEY environment variable is set then you can omit passkey from the arguments above	
+if the PASSKEY environment variable is set then you can omit passkey from the arguments above.
+Otherwise the passkey is expected as the FIRST argument to utility.sh, followed by the command ant then the arguments
 DONE
     exit
 fi
@@ -24,20 +27,39 @@ if [ -z "$PASSKEY" ];then
 fi
 cmd=$1
 shift
-echo passkey $PASSKEY
-echo command $cmd
-echo args "$@"
-# Special case the runsql because we can and should make the result readable
+# useful for debug  
+#echo passkey $PASSKEY
+#echo command $cmd
+#echo args "$@"
+export args="$@"
+export util="com.hamiltonlabs.dataflow.utility"
+# Special case the runsql and other SQLs because we can and should make the result readable
 case  "$cmd" in 
-    "RunSql"|"RunUpdate" ) 
-        java com.hamiltonlabs.dataflow.utility.$cmd $PASSKEY "$@"|./tablemaker.sh
+    "sql" ) 
+        java $util.RunSql $PASSKEY "$@"|./tablemaker.sh
+        ;;
+    "dml" ) 
+        java $util.RunUpdate $PASSKEY "$@"|./tablemaker.sh
         ;;
     "Cryptor" )
         # out of order args for cryptor 
-	java com.hamiltonlabs.dataflow.utility.$cmd $1 $PASSKEY $2
+	java $util.$cmd $1 $PASSKEY $2
         ;;
+    "runs" ) 
+	java $util.RunSql $PASSKEY "select * from  datastatus where locktype='OUT' order by dataid desc limit 20"|./tablemaker.sh
+        ;; 
+    "job" ) 
+	echo "select * from  datastatus where locktype='OUT' and jobid=$@ order by dataid desc limit 20"
+	java $util.RunSql $PASSKEY "select * from  datastatus where locktype='OUT' and jobid='$args' order by dataid desc limit 20"|./tablemaker.sh
+        ;; 
+    "jobs" )
+	java $util.RunSql $PASSKEY "select * from  job"|./tablemaker.sh
+        ;; 
+    "datasets" )
+	java $util.RunSql $PASSKEY "select datasetid,hostname,database,schemaname,tablename,username,case when length(encryptedpass)>10 then concat(substring(encryptedpass,1,10),'...') else encryptedpass end  as encryptedpass from dataset"|./tablemaker.sh
+        ;; 
     *)
-        java com.hamiltonlabs.dataflow.utility.$cmd $PASSKEY $@
+        java $util.$cmd $PASSKEY $@
         ;;
 esac
 

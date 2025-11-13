@@ -226,7 +226,7 @@ public class DataFlow {
      *  This would would be called from a utility
      */
     
-    public static String getJobData(String jobid,String passkey) throws Exception{
+    public static String getJobData(String passkey,String jobid) throws Exception{
          DataProvider dataprovider=new DataProvider().open(passkey,"dataflow.properties");
 	 return getJobData(jobid,dataprovider);
     }
