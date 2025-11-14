@@ -49,7 +49,7 @@ case  "$cmd" in
 	java $util.RunSql $PASSKEY "select * from  datastatus where locktype='OUT' order by dataid desc limit 20"|./tablemaker.sh
         ;; 
     "job" ) 
-	echo "select * from  datastatus where locktype='OUT' and jobid=$@ order by dataid desc limit 20"
+	echo "select * from  datastatus where locktype='OUT' and jobid='$@' order by dataid desc limit 20"
 	java $util.RunSql $PASSKEY "select * from  datastatus where locktype='OUT' and jobid='$args' order by dataid desc limit 20"|./tablemaker.sh
         ;; 
     "jobs" )

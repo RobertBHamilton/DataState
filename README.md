@@ -6,15 +6,72 @@ It does this by keeping track of the status of every data partition, reporting  
 
 ### Why this exists
 Many data teams spend disproportionate time and engineering effort on the same operational problems: recovering after platform outages, catching up missed cycles, and migrating huge datasets in stages. OpenDataFlow was born out of repeated large migrations and outages. It encodes the orchestration and state-tracking so recovery, catch-up, and phased migration are first-class, routine operations — using the same job scripts you already have.
+## Motivation
+
+### The Five Questions: A Transactional Manifesto for Batch ETL
+
+Years ago, while diagnosing root causes of ETL failures, the same five questions surfaced again and again. Answering them required:
+
+- Deep code dives  
+- Runtime environment spelunking  
+- Direct inspection of datasets  
+- Log archaeology to infer concurrency state  
+
+Each investigation took **20–30 minutes**.  
+After a platform outage affecting 100+ jobs?  
+**Hours lost. Risky shortcuts taken. Heroes burned out.**
+
+So we asked two natural questions:
+
+1. **Why not capture this information *at runtime* so it’s instantly available during forensics?**  
+2. **If it’s critical for root cause, isn’t it *even more* critical *before* the job runs?**
+
+The answer to both was obvious.  
+That insight birthed the **DataFlow utilities**—and eventually, **OpenDataFlow**.
+
+---
+
+| # | Question                                 | Transactional Analogy             | What Breaks Without It                     | OpenDataFlow’s Answer                                      |
+|---|------------------------------------------|-----------------------------------|--------------------------------------------|------------------------------------------------------------|
+| 1 | **Is the data ready?**                   | *Commit prerequisite*             | Jobs start on partial/incomplete inputs    | `RunJob` waits on `datastatus = READY`                     |
+| 2 | **Is it the *right* data?**              | *Isolation + Correctness*         | Loading yesterday’s file → silent corruption | Partition key + timestamp validation                       |
+| 3 | **Is it in the right location?**         | *Environment isolation*           | Dev paths in prod → data loss or breach    | Config-driven paths, no hardcoding                         |
+| 4 | **Has it been validated?**               | *Integrity check before commit*   | Garbage in → garbage forever               | Schema/row-count/sanity checks *before* lock               |
+| 5 | **Is it safe to access?**                | **Concurrency control (locking)** | Race conditions, cleanup collisions, double runs | **`dataid + datastatus` with transactional semantics**     |
+
+---
+
+### 2-Phase Commit — Without the Ceremony
+
+We use these questions to enforce a protocol **identical in spirit to 2-phase commit**:
+
+| 2PC Phase           | OpenDataFlow Equivalent                            | Implementation                                                                 |
+|---------------------|----------------------------------------------------|--------------------------------------------------------------------------------|
+| **Phase 1: Prepare**   | `RunJob` checks **all 5 Questions**                | Scans `data_manifest`, `datastatus`, locks, paths, validation                  |
+| **Yes Vote**           | All inputs = `READY`, no lock conflicts            | Every input confirms: “I’m complete, valid, and exclusively available”         |
+| **No Vote / Abort**    | Any question fails                                 | Job exits early with clear code: `DATA_NOT_READY`, `LOCKED`, `INVALID_PATH`     |
+| **Phase 2: Commit**    | Execute `job.sh` → write output                    | Only runs if *all* participants voted yes                                      |
+| **Post-Commit**        | Mark output `COMPLETE`, release lock               | Enables safe downstream consumption                                            |
+
+> **This is 2PC without the ceremony — and it works on RDBMS, NFS, S3, or a USB stick.**  
+> *Because the transactional guarantees are enforced by the **ETL jobs themselves**, not the storage layer.*
+
+---
+
+### The Legend Moment: Autonomic Recovery
+
+After a platform outage:
+
+1. You mark failed jobs:  
+   ```sql UPDATE job_status SET status = 'RESUBMIT' WHERE dataid = '2025-11-12'; ```
+2. Platform comes back online.
+3. Your regular scheduler runs RunJob dailyETL.sh as always.
+4. All RESUBMIT jobs automatically resume — safely, correctly, in order.
+
+***_No manual reruns. No fire drills. No heroics._*** The system heals itself.  
+This is  ***self-correcting data infrastructure.***
 
 
-### Key use cases (read these first)
-- Happy path — reliable, periodic runs
-  Run your existing ETL script any time; OpenDataFlow only processes partitions that are ready. No scheduler changes, no code changes.
-- Catch-up after outage — automated recovery
-  If the platform goes down or you fall behind, rerun the same command repeatedly: OpenDataFlow will pick up the next unprocessed partition each time until you’re caught up.
-- Large, phased migrations — incremental, safe migration
-  Migrate large tables by splitting on a date or shard column and repeatedly running the identical job across partitions. No special migration code, no manual state cleanup.
 
 ### Why this approach helps
 - Your existing scripts can run unchanged through RunJob.
