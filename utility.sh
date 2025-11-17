@@ -66,6 +66,9 @@ case  "$cmd" in
     "jobs" )
 	$jar |./tablemaker.sh
         ;; 
+    "deleterun" )
+	$jar $@  |./tablemaker.sh
+        ;; 
     "datasets" )
 	$jar $@  |./tablemaker.sh
         ;; 

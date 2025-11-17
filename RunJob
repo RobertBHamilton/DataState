@@ -12,9 +12,12 @@ else
   export passkey=$PASSKEY
 fi
 
-export jobid=$1
-export cmd=$2
-export args=$@
+# Why not just parse the jobid from command
+export cmd=$1
+export jobid=`basename $cmd`   #strip off the directory path
+jobid=${jobid%.*}              #strip off the extention
+shift 1
+export args="$@"
 # 
 export CLASSPATH=bin/postgresql-42.7.3.jar:bin/json-20250517.jar:utility/target/utility-1.0.0.jar
 

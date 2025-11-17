@@ -10,11 +10,19 @@ public class util {
     public static void help(){
 	System.out.println("""
   Usage: 
-    sql     passkey \"sql for select\"
-    dml     passkey \"sql for dml \"
-    getjob  passkey jobid 
-    setjob  passkey jobid dataid status CAUTION this changes dataflow status data 
-    setstat passkey status dataid datasetid jobid locktype CAUTION this changes dataflow status data 
+    sql       passkey \"sql for select\" -- run the specified select statement
+    dml       passkey \"sql for dml \"   -- run specified update/delete/ddl statement
+    getjob    passkey jobid              -- get status and registered data for the job
+    datasets  passkey                    -- list all registered datasets
+    jobs      passkey                    -- list all registered jobs
+    runs      passkey                    -- list last 20 runs
+    crypt     passkey -e text            -- encrypt (-e) or decrypt (-d)
+
+CAUTION below changes dataflow status:
+
+    endjob    passkey jobid dataid status -- end the job run with status
+    startjob  passkey jobid               -- find a suitable data chunk  for this job lock it and register running
+    deleterun passkey jobid dataid
 	""");
     }
 
@@ -37,7 +45,7 @@ public class util {
 		result=GetJobData.run(args[0],args[2]);
 		break;
 
-	    case "setjob":
+	    case "endjob":
 		result=SetJobEndStatus.run(args[0],args[2],args[3],args[4]);
 		break;
 
@@ -52,6 +60,11 @@ public class util {
 	    case "startjob":
 		result=LaunchJob.run(args[0],args[2]);
 	        break;
+
+	    case "deleterun":
+		result=DeleteRun.run(args[0],args[2],args[3]);
+	        break;
+
 
 	    case "runs":
 		result=GetJobRuns.run(args[0]);

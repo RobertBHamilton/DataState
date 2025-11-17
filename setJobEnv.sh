@@ -7,7 +7,7 @@ export passkey=$1
 export jobid=$2
 
 # 
-export CLASSPATH=bin/postgresql-42.7.3.jar:bin/json-20250517.jar:app/target/app-1.0.0.jar
+export CLASSPATH=bin/postgresql-42.7.3.jar:bin/json-20250517.jar:utility/target/utility-1.0.0.jar
 
 getEnvJSON(){
   java com.hamiltonlabs.dataflow.utility.GetJobData $jobid $passkey 
