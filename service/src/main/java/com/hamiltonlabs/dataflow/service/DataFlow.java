@@ -9,7 +9,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.security.GeneralSecurityException;
-
+import java.time.LocalDateTime;
 /** DataFlow exoses all the serviced needed to support the full job lifecycle.
   * getJobData provides all the runtime configuration needed for the data sets used by the job
   * startJob gets global rw lock on the output dataset and job-local locks on all input sets
@@ -137,7 +137,43 @@ public class DataFlow {
 
 	return returnString;
     }
+    /** just force the job to run. We do this by demanding a dataid down to the nanosecond
+     *  This ignores any and all upstream dependencies. We do this only for testing, dev and demo
+     *  The return value includes data descriptors for input/output data sets which might be useful for examination
+     */
+    public static String forceJob(String passkey,String jobid)throws Exception {
+        DataProvider dataprovider=new DataProvider().open(passkey,"dataflow.properties");
+	String dataid=LocalDateTime.now().toString();
+	JSONArray result=new JSONArray();
+        JSONObject obj = new JSONObject();
+	ResultSet rs;
+        obj.put("dataid",dataid);
+        result.put(obj);
 
+System.out.printf("jobid %s,dataid %s\n",jobid,dataid);
+
+        /* If we get  here we have found a dataset, have a dataid value for it, and a lock on the row */
+        /* now get the data to return and set the locks */
+        rs=dataprovider.runSQL(datasetSQL,jobid);
+        ResultSetMetaData rsmd = rs.getMetaData();
+        while(rs.next()) {
+            int numColumns = rsmd.getColumnCount();
+            obj = new JSONObject();
+            String datasetid=rs.getString("datasetid");
+            String locktype=rs.getString("itemtype");
+System.out.printf("status %s,%s,%s\n",datasetid,jobid,dataid);
+            setStatus(datasetid,jobid,dataid,dataprovider,locktype,"RUNNING");
+            String prefix=datasetid;
+            /* flatten the variable namespace for the scripts to use */
+            if (prefix != null){ prefix=prefix+"_"; }
+            for (int i=1; i<=numColumns; i++) {
+                String column_name = rsmd.getColumnName(i);
+                obj.put(prefix+column_name, rs.getObject(column_name));
+            }
+            result.put(obj);
+        }
+        return result.toString();
+     }
 
     /* This performs row level locking for update so both the get data and the updates are done in one transaction */
     public static String launchJob(String passkey,String jobid)throws Exception{
@@ -163,6 +199,7 @@ public class DataFlow {
 	      return result.toString();  /* empty set */
 	   }
         }
+
         obj.put("dataid",dataid);
 	result.put(obj);
 	/* If we get  here we have found a dataset, have a dataid value for it, and a lock on the row */

@@ -1,4 +1,5 @@
 # OpenDataFlow
+NOTE This application is in BETA. It still needs a some work to get to first release. Contributers are welcom
 
 ## Overview
 OpenDataFlow is a lightweight orchestration utility that runs and coordinates batch jobs over partitioned or time-sliced data so teams can schedule, recover, and migrate large data-processing pipelines without changing their ETL code.
@@ -117,7 +118,7 @@ Security note: the decrypted credential is provided only at runtime in the job p
 
 7. Run your job
    Make your ETL script executable (e.g., myETL.sh) and invoke it via:
-   RunJob <key> <jobid for myetl> myETL.sh
+   RunJob myETL.sh
    
    RunJob exports the environment variables described above, runs your script, captures exit status, and records the result to the dataflow DB.
    You can choose to use any or none, though at least you need to know the partitionid (that is $dataid)

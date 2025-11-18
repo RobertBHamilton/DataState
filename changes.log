@@ -55,4 +55,5 @@ NOTE: for the script we have added a new dependency. It uses jq.
     To use the old method, which allows arbitrary commands like "echo or set", use SRUN jobid cmd
     Updated the help in utility jar, added deleterun function. Loading properties file now as a resource.
 
-    I think we should remove passkey on command line entirely and force it to be environment only.                                             
+    TODO: I think we should remove passkey on command line entirely and force it to be environment only.                                             
+  
