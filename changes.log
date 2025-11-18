@@ -49,4 +49,11 @@ NOTE: for the script we have added a new dependency. It uses jq.
     TODO: remove the horrid mess of the getJobData method, correct a bad desicion that added side effects. Have to split it up. 
       have all junit tests clean up the database and initialize with data if needed before running, 
       build some reference job flows.  
-      
+2025-11-16 Many changes to utilities. Using jq in shell script is too limitting, so I'll be adding a java utility and format the output in the java utils.  
+     The messy problems of 11-09 are fixed.   
+2025-11-17 Change RunJob to use simpler syntax. Now we just to RunJob myscript.sh and it infers the runid from the script name. 
+    To use the old method, which allows arbitrary commands like "echo or set", use SRUN jobid cmd
+    Updated the help in utility jar, added deleterun function. Loading properties file now as a resource.
+
+    TODO: I think we should remove passkey on command line entirely and force it to be environment only.                                             
+  

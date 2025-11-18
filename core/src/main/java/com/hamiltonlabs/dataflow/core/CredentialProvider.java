@@ -1,7 +1,9 @@
 package com.hamiltonlabs.dataflow.core;
 
 import java.util.Properties;
-import java.io.FileInputStream;
+import java.io.InputStream;
+//import java.io.FileInputStream;
+
 /** Provide credentials for all OpenDataFlow access 
  *   Credentials are user/password. They are returned in a java.util.Properties object.
  *
@@ -43,10 +45,18 @@ public class CredentialProvider{
      * this properties should have entries for URL, user, encrypted,schema
      * other properties are allowed but they will be passed as parameters  to the JDBC 
      */
-    public static Properties getCredentials(String passphrase,String filepath) throws java.security.GeneralSecurityException,java.io.IOException {
-        Properties props=new Properties();
-        props.load(new FileInputStream(filepath));
-        return updateDecrypted(passphrase,props);
+    public static Properties getCredentials(String passphrase,String propertiesPath) throws java.security.GeneralSecurityException,java.io.IOException {
+        Properties properties=new Properties();
+        // properties.load(new FileInputStream(filepath));
+        try (InputStream input = CredentialProvider.class.getClassLoader().getResourceAsStream(propertiesPath)) {
+            if (input == null) {
+                System.out.printf("Unable to find resource %s\n",propertiesPath);
+            }
+            properties.load(input);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return updateDecrypted(passphrase,properties);
     }
 
     /** add decrypted string to the properties.
@@ -61,11 +71,4 @@ public class CredentialProvider{
     	props.put("password",getPass(passphrase,props.getProperty("encrypted")));
 	return props;
     }
-    /** get credentials.
-      * @param passphrase secret passphrase to use to decrypt the password 
-      * @return properties suitable for establishing jdbc connection via ConnectionManager.getConnection
-      * this function handles encryption/decryption of password
-      * This is totally stubbed for testing other classes and will be replaced. 
-      * 
-      */
 }
