@@ -62,10 +62,6 @@ CAUTION below changes dataflow status:
 		result=LaunchJob.run(args[0],args[2]);
 	        break;
 
-	    case "forcejob":
-		result=ForceJob.run(args[0],args[2]);
-	        break;
-
 	    case "deleterun":
 		result=DeleteRun.run(args[0],args[2],args[3]);
 	        break;
