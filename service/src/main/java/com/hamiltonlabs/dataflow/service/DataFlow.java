@@ -56,7 +56,7 @@ public class DataFlow {
 		      and d3.dataid=d.dataid
                       and d3.status='READY'
 		   where 
-		       j3.jobid=d.jobid 
+		       j3.jobid=j.jobid 
                    and j3.itemtype='IN'     
 		   and d3.dataid is null )    /* any non match is a missing input */ 
                order by d.dataid limit 1 for update of d skip locked
@@ -137,13 +137,22 @@ public class DataFlow {
 
 	return returnString;
     }
+
+    /** just force the job to run with the given dataid
+     *  This ignores any and all upstream dependencies. We do this only for testing, dev and demo
+     *  The return value includes data descriptors for input/output data sets which might be useful for examination
+     */
+    public static String forceJobTS(String passkey,String jobid) throws Exception{
+	String dataid=LocalDateTime.now().toString();
+	return forceJob(passkey,jobid,dataid);
+    }
+
     /** just force the job to run. We do this by demanding a dataid down to the nanosecond
      *  This ignores any and all upstream dependencies. We do this only for testing, dev and demo
      *  The return value includes data descriptors for input/output data sets which might be useful for examination
      */
-    public static String forceJob(String passkey,String jobid)throws Exception {
+    public static String forceJob(String passkey,String jobid,String dataid)throws Exception {
         DataProvider dataprovider=new DataProvider().open(passkey,"dataflow.properties");
-	String dataid=LocalDateTime.now().toString();
 	JSONArray result=new JSONArray();
         JSONObject obj = new JSONObject();
 	ResultSet rs;

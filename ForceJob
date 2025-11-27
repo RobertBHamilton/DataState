@@ -14,10 +14,10 @@ fi
 
 if [ $# -lt 1 ]; then # print a help message and quit"
 cat<<DONE
-   "ForceJob passkey myjobid mycommand"
-   "Passkey=blah ForceJob myjobid mycommand"
+   "ForceJob passkey myjobid dataid"
+   "Passkey=blah ForceJob myjobid  dataid "
    
-   ForceJob grabs a dataid and runs the job without checking the dependencies.
+   ForceJob used the dataid you provide and runs the job without checking the dependencies.
    It also actually runs the command and sets the status in the datastatus table, which means that you will want to do cleanup after the run
  
    This breaks the contract and defeats the purpose of the framework. 
@@ -36,16 +36,19 @@ DONE
 fi
 
 # we supply both jobid and command. This is so that we can cheat and use some command which tests the communication and configuration
-export jobid=$1
-export cmd=$2
+export cmd=$1
+export jobid=`basename $cmd`   #strip off the directory path
+jobid=${jobid%.*}              #strip off the extention
+export dataid=$2
 shift 2
-export args=$@
-echo "Jobid is $jobid, command is $cmd "
+export args="$@"
+
+echo "Jobid is $jobid, dataid from command args is $dataid "
 # 
 export CLASSPATH=bin/postgresql-42.7.3.jar:bin/json-20250517.jar:utility/target/utility-1.0.0.jar
 
 getEnvJSON(){
-  java com.hamiltonlabs.dataflow.utility.ForceJob $passkey "$jobid"
+  java com.hamiltonlabs.dataflow.utility.ForceJob $passkey "$jobid" $dataid
 }
 
 decrypt() {
@@ -58,7 +61,6 @@ java com.hamiltonlabs.dataflow.utility.Cryptor -d $passkey "$1"
 declareEnv(){
 
   #stale dataid will result in false executions so make sure we only set it here
-  unset dataid   
   getEnvJSON |jq -c '.[] | to_entries[]' | while read -r entry; do
  
 
@@ -83,6 +85,7 @@ declareEnv(){
 done
 }
 
+echo "abut to do java com.hamiltonlabs.dataflow.utility.ForceJob $passkey $jobid $dataid"
 env="`declareEnv`"
 source <(echo "$env")
 if [ -z "$dataid" ];then

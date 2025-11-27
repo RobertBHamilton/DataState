@@ -22,7 +22,7 @@ CAUTION below changes dataflow status:
 
     endjob    passkey jobid dataid status -- end the job run with status
     startjob  passkey jobid               -- find a suitable data chunk  for this job lock it and register running
-    forcejob  passkey jobid               -- arbitrarily set a fake dataid for this job lock it and register running
+    forcejob  passkey jobid dataid        -- arbitrarily set a fake dataid for this job lock it and register running
     deleterun passkey jobid dataid
 	""");
     }
@@ -59,8 +59,13 @@ CAUTION below changes dataflow status:
 	        break;
 
 	    case "forcejob":
-		result=ForceJob.run(args[0],args[2]);
+		result=ForceJob.run(args[0],args[1],args[2]);
 	        break;
+
+	    case "forcejobts":
+		result=ForceJobTS.run(args[0],args[2]);
+	        break;
+
 
 	    case "startjob":
 		result=LaunchJob.run(args[0],args[2]);
