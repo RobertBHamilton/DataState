@@ -32,9 +32,9 @@ public class DataProviderTest{
     /* run some sql and get expected result */
     @Test
     void runSQL() throws SQLException {
-	ResultSet rs=p.runSQL("select user where ?='1'","1");
+	ResultSet rs=p.runSQL("select 1 as one where ?='1'","1");
 	rs.next();
-	assertEquals(rs.getString("user"),"etl");
+	assertEquals(rs.getString("one"),"1");
 	
     }
     

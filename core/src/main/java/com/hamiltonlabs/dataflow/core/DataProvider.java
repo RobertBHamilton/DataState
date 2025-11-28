@@ -50,7 +50,10 @@ public class DataProvider implements AutoCloseable{
         Properties creds=CredentialProvider.getCredentials(passphrase,props);
 	String url=creds.getProperty("url");
 	connection=DriverManager.getConnection(url,creds);
-	connection.setSchema(creds.getProperty("schema"));
+	String schema=creds.getProperty("schema");
+	if (schema!=null){
+	    connection.setSchema(creds.getProperty("schema"));
+	}
 	return this;
     }	
 

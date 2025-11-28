@@ -61,10 +61,56 @@ public class DataFlow {
 		   and d3.dataid is null )    /* any non match is a missing input */ 
                order by d.dataid limit 1 for update of d skip locked
             """ ;
+static String dropJobSQL="drop table if exists dataflow.job";
+static String dropDatasetSQL="drop table if exists dataflow.dataset";
+static String dropDatastatusSQL="drop table if exists dataflow.datastatus";
+static String createJobSQL=""" 
+create table if not exists job(
+    jobid varchar,
+    itemtype varchar,    /* for data, IN or OUT, or name of env variable  */
+    datasetid varchar,   /* null for environment item   */
+    itemvalue varchar,    /* null if IN or OUT item      */
+    modified  timestamp
+) """;
+
+/*  Contain sufficient information for ETL script to establish a connection,
+ *  provided that he can decrypt the password:
+ *  database,schema,table,user,encrypted password 
+ *  Yes these are db centric in a generic table but they can be mapped to 
+ *  other types of data sets like files, web urls, hdfs tables etc.
+ */
+
+
+static String createDatasetSQL="""
+ create table if not exists dataflow.dataset(
+    datasetid varchar,
+    hostname varchar,
+    database varchar,
+    schemaname varchar,
+    tablename varchar,
+    username varchar,
+    encryptedpass varchar
+) 
+""";
+static String createIndexDatasetSQL="create index if not exists x_dataset on dataflow.dataset(datasetid)";
+
+
+static String createDatastatusSQL=""" 
+create table if not exists dataflow.datastatus(
+    datasetid varchar,
+    jobid varchar,
+    dataid varchar,
+    locktype varchar,
+    status varchar,
+    modified timestamp,
+primary key (datasetid,jobid,dataid)
+)
+""";
+
 
 /* Automatic dataset 'today' always supplies current date as dataid and is always READY */
 /* The rest of the logic confirming ready must be identical    */
-	 static String dataidTodaySQL= """
+static String dataidTodaySQL= """
                  select to_char(current_date,'YYYY-MM-DD') as dataid,j.jobid from job j where j.itemtype='IN' and j.datasetid='today' and j.jobid=? /* and non of the input rows are already have IN status for this job */ and not exists ( select d1.dataid from job j1 join datastatus d1 on j1.jobid=j.jobid and j1.itemtype='IN' and d1.locktype='IN' and j1.datasetid=d1.datasetid and d1.dataid=to_char(current_date,'YYYY-MM-DD')) 
                 /* and this job is not running  or complete already  */ 
                 and not exists ( 
@@ -103,6 +149,16 @@ public class DataFlow {
 	static String updateOutStatusSQL="update datastatus set status=? where jobid=? and dataid=? and locktype='OUT'	";
 	static String updateFileLocalStatusSQL="delete from datastatus where jobid=? and dataid=? and locktype='IN'	";
 
+  /** create tables for the dataflow schema  */
+  public static String createTables(String passkey)throws Exception{
+         DataProvider dataprovider=new DataProvider().open(passkey,"dataflow.properties");
+	  
+	int updatecount=dataprovider.runUpdate(createJobSQL);
+	updatecount+=dataprovider.runUpdate(createDatasetSQL);
+	updatecount+=dataprovider.runUpdate(createDatastatusSQL);
+	updatecount+=dataprovider.runUpdate(createIndexDatasetSQL);
+	return String.format("%d rows updated",updatecount);
+  }
     /**  Set the status for a given dataset,job, and chunk 
      *
      *  @param datasetid    string representing registered dataset

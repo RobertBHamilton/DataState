@@ -2,8 +2,8 @@ package com.hamiltonlabs.dataflow.core;
 
 import java.util.Properties;
 import java.io.InputStream;
-//import java.io.FileInputStream;
-
+import java.io.FileInputStream;
+import java.io.File;
 /** Provide credentials for all OpenDataFlow access 
  *   Credentials are user/password. They are returned in a java.util.Properties object.
  *
@@ -47,7 +47,12 @@ public class CredentialProvider{
      */
     public static Properties getCredentials(String passphrase,String propertiesPath) throws java.security.GeneralSecurityException,java.io.IOException {
         Properties properties=new Properties();
-        // properties.load(new FileInputStream(filepath));
+        //properties.load(new FileInputStream(filepath));
+	File file=new File(propertiesPath);
+        if (file.exists()){
+	   properties.load(new FileInputStream(file)); 
+        return updateDecrypted(passphrase,properties);
+	} 
         try (InputStream input = CredentialProvider.class.getClassLoader().getResourceAsStream(propertiesPath)) {
             if (input == null) {
                 System.out.printf("Unable to find resource %s\n",propertiesPath);

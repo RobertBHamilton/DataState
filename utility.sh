@@ -1,4 +1,4 @@
-export CLASSPATH=bin/postgresql-42.7.3.jar:bin/json-20250517.jar:utility/target/utility-1.0.0.jar
+export CLASSPATH=bin/postgresql-42.7.3.jar:bin/json-20250517.jar:bin/h2-2.2.224.jar:utility/target/utility-1.0.0.jar
 if [ $# -lt 1 ];then
 cat<<DONE
 usage: $0 cmd args
