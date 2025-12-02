@@ -87,23 +87,70 @@ See the examples/ directory for exact variable names and sample scripts that rea
 Security note: the decrypted credential is provided only at runtime in the job process’s environment. Be careful not to echo or persist it in logs. Keep the encryption key used to create the encrypted password secret.
 
 ### Quick start (5 minutes)
+For the quick start we use H2 in file mode. It is fast and easy because H2 creates you database, schema, user with password automatically on the first connect. We have a utilty that creates the H2 tables next. 
+For featherweight implementations, H2 will work pretty well. If you need robustness, scalability, and good transaction semantics then you will need posgress.
+also see the file QUICKSTART.md for more details.
+
 1. Prerequisites
    - Linux (Ubuntu tested), bash, maven
    - jq (sudo apt install -y jq)
-   - PostgreSQL (or run a local container)
-   - json-java (json-20250517.jar) and the Postgres JDBC driver (e.g., postgresql-42.7.3.jar)
-   - A Postgres database named `dataflow`, schema `dataflow`, and a user `etl`
 
-2. Run a local Postgres (optional)
-   podman run -p 5432:5432 --name pg -e POSTGRES_PASSWORD=secretpass -d docker.io/postgres
-
-3. Build
+2. Build
    mvn package
 
-4. Initialize database
+3. Create the DataFlow tables
+    export PASSKEY=plugh (this is default but it should be changed )
+    ./utility.sh createtables
+
+Your DataFlow tool is now configured and ready to run.
+
+### Test
+
+Test has a job (loadbob), which takes one input dataset (bobin) and one output dataset(bobout)
+We are not actually testing an ETL job. We want to test that the framework is calling it correctly and supplying the necessary dataid and dataset metadata.
+
+1. Register two dataset
+```
+  ./utility.sh dml "insert into dataset (datasetid) values  ('bobin')"
+  ./utility.sh dml "insert into dataset (datasetid) values  ('bobout')"
+```
+ 2. Associate them to the loadbob job.
+```
+   ./utility.sh dml "insert into job (datasetid,itemtype,jobid) values ('bobout','OUT','loadbob')"
+   ./utility.sh dml "insert into job (datasetid,itemtype,jobid) values ('bobin' ,'IN', 'loadbob')"
+```
+ 3. Mark the input set as READY (just for the test. In real jobs some other job has completed and marked it) 
+
+```  
+./utility.sh dml "insert into datastatus (dataid,datasetid,jobid,locktype,modified,status) values ('1.0','bobin','fakejob', 'OUT',now(),'READY')"
+```
+ 4. Job should be ready  to run, now that it has an input data set in READY status. Perform the test now with RunJob
+```    
+    RunJob ./loadbob.sh 
+```
+
+Output should look like this:
+
+```text
+  Mon Dec  1 04:08:50 PM CST 2025: Launching ./loadbob.sh with dataid 1.0
+  running loadbob with dataid 1.0 partition of input  bobin
+  Mon Dec  1 04:08:50 PM CST 2025: Job ./loadbob.sh is complete. Updating status
+  1 rows updated to READY for loadbob and 1.0 1 IN file-local locks released
+```
+Two log-style messages, confirming the start and end of the loadbob job, and the one line output by the `loadbob.sh` script
+The last line informational message indicating that DataFlow has set the final status
+
+### Postgres
+For this you need a postgres database up and running. The absolute easiest way is to spin up a container
+
+1. Run a local Postgres (optional)
+   podman run -p 5432:5432 --name pg -e POSTGRES_PASSWORD=secretpass -d docker.io/postgres
+
+
+2. Initialize database. Create a user, ETL and his password. 
    Connect with psql and run docs/create_tables.sql. See docs/datamodel.txt for schema notes.
 
-5. Configure
+3. Configure
    Encrypt the DB password with the included Cryptor class:
    java -cp app/target/app-1.0.0.jar com.hamiltonlabs.dataflow.utility.Cryptor -e <key> "<password>"
    Create the file **dataflow.properties** and place the url,user,schema, and encrypted fields. This tells the utility how to access the dataflow database.
@@ -116,7 +163,7 @@ Security note: the decrypted credential is provided only at runtime in the job p
    ```
    Keep the encryption key private.
 
-7. Run your job
+4. Run your job
    Make your ETL script executable (e.g., myETL.sh) and invoke it via:
    RunJob myETL.sh
    

@@ -1,3 +1,4 @@
+
 <project xmlns="http://maven.apache.org/POM/4.0.0" 
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
@@ -30,11 +31,6 @@
       <version>1.0.0</version>
     </dependency>
     <dependency>
-      <groupId>com.hamiltonlabs</groupId>
-      <artifactId>resources</artifactId>
-      <version>1.0.0</version>
-    </dependency>
-    <dependency>
       <groupId>org.json</groupId>
       <artifactId>json</artifactId>
       <version>20250517</version>
@@ -44,9 +40,7 @@
       <artifactId>postgresql</artifactId>
       <version>42.7.3</version>
     </dependency>
-
   </dependencies>
-
 
 
   <build>
@@ -67,21 +61,10 @@
                     <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                     <mainClass>com.hamiltonlabs.dataflow.utility.util</mainClass>
                     </transformer>
+                    <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                </transformers>
-<!--
-                <artifactSet>
-                  <includes>
-                     <include>com.hamiltonlabs:core</include>
-                     <include>com.hamiltonlabs:utility</include>
-                     <include>com.hamiltonlabs:database</include>
-                     <include>com.hamiltonlabs:service</include>
-                     <include>com.hamiltonlabs:platform</include>
-                     <include>org.postgresql:postgresql</include>
-                     <include>org.json:json</include>
-                  </includes>
-                </artifactSet>
--->
-               <finalName>${project.artifactId.version}</finalName>
+              <!-- <finalName>${project.artifactId.version}</finalName> -->
+               <finalName>dataflow-${version}</finalName>
               </configuration>
             </execution>
           </executions>
