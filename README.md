@@ -14,6 +14,15 @@ Data warehousing is all about data. Not about tasks. The data-centric approach i
 
 It does this by keeping track of the status of every data partition, reporting that status when requested, and using the status to determine a partition of data sets which is ready to be consumed by a job.   Our one purpose is to associate that data to a particular job run and provide that info at runtime.
 
+```mermaid
+stateDiagram-v2
+    [*] --> READY
+    READY --> PREPARE : Data Ready?
+    PREPARE --> RUNNING : All Checks Pass
+    RUNNING --> COMPLETE :Job Succeeds 
+    RUNNING --> FAILED : Failure
+```
+
 A side benefit of DataState is that it keeps connection info for every dataset, so that they do not have to be hardcoded into job scripts or maintained separately by each job. This enables easy integration with dataquality tools and saves support time and cost when diagnosing failures, and prevents accidents when job code is promoted to production (no code change, no configuration change needed).
 
 ### Why this exists
@@ -154,14 +163,16 @@ The last line informational message indicating that DataFlow has set the final s
 ### Postgres
 For this you need a postgres database up and running. The absolute easiest way is to spin up a container
 
-1. Run a local Postgres (optional)
+1. Run a local Postgres (using docker or podman) 
    podman run -p 5432:5432 --name pg -e POSTGRES_PASSWORD=secretpass -d docker.io/postgres
+   or
+   podman run -v pg:/var/lib/postgresql/18/docker -p 5432:5432  --name pg -e POSTGRES_PASSWORD=mysecret -d docker.io/postgres
+   
 
-
-2. Initialize database. Create a user, ETL and his password. 
+3. Initialize database. Create a user, ETL and his password. 
    Connect with psql and run docs/create_tables.sql. See docs/datamodel.txt for schema notes.
 
-3. Configure
+4. Configure
    Encrypt the DB password with the included Cryptor class:
    java -cp app/target/app-1.0.0.jar com.hamiltonlabs.dataflow.utility.Cryptor -e <key> "<password>"
    Create the file **dataflow.properties** and place the url,user,schema, and encrypted fields. This tells the utility how to access the dataflow database.
@@ -174,7 +185,7 @@ For this you need a postgres database up and running. The absolute easiest way i
    ```
    Keep the encryption key private.
 
-4. Run your job
+5. Run your job
    Make your ETL script executable (e.g., myETL.sh) and invoke it via:
    RunJob myETL.sh
    
