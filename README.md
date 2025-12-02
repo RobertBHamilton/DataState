@@ -1,9 +1,20 @@
-# OpenDataFlow
+# DataState: State-Driven ETL Orchestration
+
 NOTE This application is in BETA. It still needs some work to get to first release. Contributers are welcome
 
 ## Overview
-OpenDataFlow is a lightweight orchestration utility that runs and coordinates batch jobs over partitioned or time-sliced data so teams can schedule, recover, and migrate large data-processing pipelines without changing their ETL code.
-It does this by keeping track of the status of every data partition, reporting  on status when needed, and using the status to determine a partition of data sets which is ready to be consumed by a job.   Our one purpose is to associate that data to a particular job run and provide that info at runtime.
+
+DataState is a lightweight orchestration utility that runs and coordinates batch jobs over partitioned or time-sliced data so teams can schedule, recover, and migrate large data-processing pipelines without changing their ETL code.
+
+This is not Airflow. Airflow schedules tasks; DataState ensures data readiness.
+To Airflow, the batch cycle is a giant DAG, a tree structure representing a rigid order in which jobs will run.
+To DataState, every job is an independent task which only cares about the data it is consuming and producing. Provided the data requirements are met (see the five questions below), any job can run at any time with any degree of concurent jobs.  The DataState tool makes this possible.
+
+Data warehousing is all about data. Not about tasks. The data-centric approach is the right model to use. With DataState, we work **with** that model, not against it.
+
+It does this by keeping track of the status of every data partition, reporting that status when requested, and using the status to determine a partition of data sets which is ready to be consumed by a job.   Our one purpose is to associate that data to a particular job run and provide that info at runtime.
+
+A side benefit of DataState is that it keeps connection info for every dataset, so that they do not have to be hardcoded into job scripts or maintained separately by each job. This enables easy integration with dataquality tools and saves support time and cost when diagnosing failures, and prevents accidents when job code is promoted to production (no code change, no configuration change needed).
 
 ### Why this exists
 Many data teams spend disproportionate time and engineering effort on the same operational problems: recovering after platform outages, catching up missed cycles, and migrating huge datasets in stages. OpenDataFlow was born out of repeated large migrations and outages. It encodes the orchestration and state-tracking so recovery, catch-up, and phased migration are first-class, routine operations — using the same job scripts you already have.
@@ -28,7 +39,7 @@ So we asked two natural questions:
 2. **If it’s critical for root cause, isn’t it *even more* critical *before* the job runs?**
 
 The answer to both was obvious.  
-That insight birthed the **DataFlow utilities** and eventually, **OpenDataFlow**.
+That insight birthed the **DataFlow utilities** and eventually became what we are calling now, **DataState**.
 
 ---
 
@@ -46,7 +57,7 @@ That insight birthed the **DataFlow utilities** and eventually, **OpenDataFlow**
 
 We use these questions to enforce a protocol **identical in spirit to 2-phase commit**:
 
-| 2PC Phase           | OpenDataFlow Equivalent                            | Implementation                                                                 |
+| 2PC Phase           | DataState Equivalent                               | Implementation                                                                 |
 |---------------------|----------------------------------------------------|--------------------------------------------------------------------------------|
 | **Phase 1: Prepare**   | `RunJob` checks **all 5 Questions**                | Scans `data_manifest`, `datastatus`, locks, paths, validation                  |
 | **Yes Vote**           | All inputs = `READY`, no lock conflicts            | Every input confirms: “I’m complete, valid, and exclusively available”         |
@@ -59,7 +70,7 @@ We use these questions to enforce a protocol **identical in spirit to 2-phase co
 
 ---
 
-### The Legend Moment: Autonomic Recovery
+### The Defining Moment: Autonomic Recovery
 
 After a platform outage:
 
