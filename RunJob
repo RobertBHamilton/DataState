@@ -16,15 +16,23 @@ else
   export passkey=$PASSKEY
 fi
 
-# Why not just parse the jobid from command
-export cmd=$1
-export jobid=`basename $cmd`   #strip off the directory path
-jobid=${jobid%.*}              #strip off the extention
-shift 1
+# flex command. With -c the we are executing RunJob -c "any_command" jobid
+if [ "$1" == "-c" ];then
+  export cmd=$2
+  export jobid=$3
+  echo "running the specific command version, cmd=$cmd and jobid=$jobid"
+  shift 3 
+else
+  # In the normal case we are executing RunJob /path/to/some_command.sh, 
+  # and jobid is the command stripped of path and exetension
+  export cmd=$1
+  export jobid=`basename $cmd`   #strip off the directory path
+  jobid=${jobid%.*}              #strip off the extention
+  echo "running the implicit command version, cmd=$cmd and jobid=$jobid"
+  shift 1
+fi
 export args="$@"
-# 
-#export CLASSPATH=bin/postgresql-42.7.3.jar:bin/json-20250517.jar:utility/target/utility-1.0.0.jar
-#export CLASSPATH=bin/json-20250517.jar:bin/h2-2.2.224.jar:utility/target/utility-1.0.0.jar
+
 # get the jar file either in current directory or in canonical build location
 jarfile="`ls  utility/target/dataflow*jar dataflow*jar 2>/dev/null|tail -1`"
 if [ -f "$jarfile" ];then
@@ -37,22 +45,20 @@ export CLASSPATH=$jarfile
 
 
 getEnvJSON(){
-  #java com.hamiltonlabs.dataflow.utility.GetJobData $jobid $passkey 
   java com.hamiltonlabs.dataflow.utility.LaunchJob $passkey $jobid 
 }
 
 decrypt() {
-java com.hamiltonlabs.dataflow.utility.Cryptor -d $passkey "$1"
+  java com.hamiltonlabs.dataflow.utility.Cryptor -d $passkey "$1"
 }
 
 # Because we pipe to the parse, it creates a separate process and so any changes we make
-# to the environment will vanish when the process exits. Instead we just pipe it to source 
+# to the environment will vanish when the process exits. 
+#Instead we just pipe it to source 
 # using Bash process substitution
-declareEnv(){
   #stale dataid will result in false executions so make sure we only set it here
   unset dataid   
-  getEnvJSON|tail -1|jq -c '.[] | to_entries[]' | while read -r entry; do
- 
+  getEnvJSON|tail -1|jq -c '.[] | to_entries[]' | (while read -r entry; do
 
   key=$(echo "$entry" | jq -r '.key')
   value=$(echo "$entry" | jq -r '.value')
@@ -62,24 +68,20 @@ declareEnv(){
      export a=$a;	#do nothing dont pollute the env with the automatic dataset */
   else    
     # Emit export statement
-    echo "declare -x $key=\"${value}\";"
-
-
+    declare -x $key="${value}";
+    
     # Handle encrypted passwords
     if [[ $key =~ ^(.*)_encryptedpass$ ]]; then
       prefix="${BASH_REMATCH[1]}"
       decrypted=$(decrypt "$value")
-      echo "declare -x ${prefix}_password=\"${decrypted}\";"
+      declare -x ${prefix}_password="${decrypted}"
     fi
   fi
 done
-}
-
-# test
-env="`declareEnv`"
+export dataid
+echo dataid is $dataid
 # uncomment if you need to debug echo "$env"
-
-source <(echo "$env")
+#source <(echo "$env")
 if [ -z "$dataid" ];then
   echo "`date`: no suitable data available for job. Not running it"
 else
@@ -94,3 +96,4 @@ else
      java -cp $CLASSPATH:app.jar com.hamiltonlabs.dataflow.utility.SetJobEndStatus $passkey $jobid $dataid FAILED
   fi
 fi
+)
