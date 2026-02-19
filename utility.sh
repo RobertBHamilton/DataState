@@ -24,7 +24,7 @@ currently supported commands with required args are:
      utility.sh  endjob jobid dataid status 
      utility.sh  GetJobData jobid 
      utility.sh  SetDataStatus RUNNING 3000 today newjob OUT
-     utility.sh dml "delete from datastatus where jobid='newjob'a
+     utility.sh dml "delete from datastatus where jobid='myjob'"
 ** forcejob breaks every contract. Just use it to verify your configuration during dev. ** 
 
 if the PASSKEY environment variable is set then you can omit passkey from the arguments above.
@@ -95,8 +95,10 @@ export jar="$jarc $cmd "
 
 # Special case the runsql and other SQLs because we can and should make the result readable
 # cmd now has arguments: $PASSKEY $cmd $args
+# FIXME. Piping through tail kills the exit code
 case  "$cmd" in 
     "sql" ) 
+	echo '###' $jar "$@"  
 	$jar "$@" |tail -1|tablemaker
         ;;
     "dml" ) 

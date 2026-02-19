@@ -7,9 +7,9 @@
 # Note that RunJob put us in the right directory, which also has utility.sh
 # verify this:
 echo Current working directory `pwd`
-./utility.sh sql "select count(*) as numrows from ${datastatus_schemaname}.${datastatus_tablename} where cast(modified as date) = parsedatetime('$dataid','yyyy-MM-dd')" 
 
-export n=`./utility.sh sql "select count(*) as numrows from ${datastatus_schemaname}.${datastatus_tablename} where cast(modified as date) = parsedatetime('$dataid','yyyy-MM-dd')" |head -3|tail -1`
+# New policy in utility.sh. We will preface info lines with ###. That way we can keep them out of data files
+export n=`./utility.sh sql "select count(*) as numrows from ${datastatus_schemaname}.${datastatus_tablename} where cast(modified as date) = parsedatetime('$dataid','yyyy-MM-dd')" |grep -v '###' |head -3|tail -1`
 
 echo "dataset hass $n rows"
 if [ "$n" -ge 0 ];then 
